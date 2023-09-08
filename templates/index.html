@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Title Extractor</title>
+</head>
+<body>
+    <h1>URL Title Extractor</h1>
+
+    <form method="post">
+        <label for="urls">Enter URLs (one per line):</label><br>
+        <textarea id="urls" name="urls" rows="5" cols="40"></textarea><br>
+        <input type="submit" value="Extract Titles">
+    </form>
+
+    <h2>Extracted Titles:</h2>
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+        <div id="progress-text">Progress: 0%</div>
+    </div>
+    <div id="counter">URLs Processed: 0 / 0</div>
+    <ul id="titles">
+        <!-- Titles will be dynamically added here -->
+    </ul>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Function to update the progress and counter
+        function updateProgressAndCounter(progress, processedUrls, totalUrls) {
+            $("#progress-bar").css("width", progress + "%");
+            $("#progress-text").text("Progress: " + progress + "%");
+            $("#counter").text("URLs Processed: " + processedUrls + " / " + totalUrls);
+        }
+
+        // Submit the form using AJAX
+        $("form").submit(function (event) {
+            event.preventDefault();
+            var urls = $("#urls").val().split("\n").map(function (url) {
+                return url.trim();
+            });
+
+            var titlesList = $("#titles");
+            var totalUrls = urls.length;
+            var processedUrls = 0;
+
+            function fetchTitle() {
+                if (urls.length === 0) {
+                    return;
+                }
+
+                var url = urls.pop();
+                $.ajax({
+                    url: "/fetch_title",
+                    type: "POST",
+                    data: { url: url },
+                    success: function (data) {
+                        titlesList.append("<li>" + data + "</li>");
+                        processedUrls++;
+                        var progress = Math.round((processedUrls / totalUrls) * 100);
+                        updateProgressAndCounter(progress, processedUrls, totalUrls);
+
+                        // If this was the last URL, hide the progress bar
+                        if (processedUrls === totalUrls) {
+                            $("#progress-container").hide();
+                        }
+
+                        fetchTitle();
+                    },
+                    error: function () {
+                        titlesList.append("<li>Error retrieving title for " + url + "</li>");
+                        processedUrls++;
+                        var progress = Math.round((processedUrls / totalUrls) * 100);
+                        updateProgressAndCounter(progress, processedUrls, totalUrls);
+                        fetchTitle();
+                    },
+                });
+            }
+
+            fetchTitle();
+        });
+    </script>
+</body>
+</html>
